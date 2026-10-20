@@ -1,0 +1,803 @@
+import React, { useState } from 'react';
+
+/**
+ * MAFQOUDAT REALISTIC NEW POST WIZARD (MOCK FOR AI STUDIO / MOTION ADS)
+ * 
+ * Accurately replicates the real website's 4-Step Wizard:
+ * 1. "What happened" (Lost/Found select + Category Grid Picker + Description)
+ * 2. "Where & when" (Country, City search, Date, Exact location)
+ * 3. "Photo" (Dropzone, image preview, face privacy toggle)
+ * 4. "Review & Publish" (Summary card + Publish button)
+ * 
+ * Standalone: 0 external backend / Redux / Formik dependencies.
+ */
+
+const CATEGORIES = [
+  { id: 'phones', name: 'Phones & Tech', icon: '📱', color: '#1A73E8' },
+  { id: 'wallets', name: 'Wallets & Purses', icon: '👛', color: '#8B5CF6' },
+  { id: 'keys', name: 'Keys & Keychains', icon: '🔑', color: '#F59E0B' },
+  { id: 'docs', name: 'IDs & Documents', icon: '🪪', color: '#10B981' },
+  { id: 'bags', name: 'Bags & Luggage', icon: '🎒', color: '#EC4899' },
+  { id: 'pets', name: 'Pets & Animals', icon: '🐾', color: '#F97316' },
+  { id: 'jewelry', name: 'Jewelry & Watches', icon: '⌚', color: '#EAB308' },
+  { id: 'other', name: 'Other Items', icon: '📦', color: '#64748B' },
+];
+
+export const mockSampleData = {
+  type: 'LOST',
+  category: 'phones',
+  title: 'iPhone 13 Pro Max (Navy Blue)',
+  country: 'Morocco 🇲🇦',
+  city: 'Casablanca (Morocco Mall)',
+  exactLocation: 'Ground floor, near Starbucks coffee counter',
+  date: '2026-10-20',
+  description: 'Lost around 4:30 PM. Blue silicone case with a small scratch near the camera lens.',
+  image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500&auto=format&fit=crop&q=80',
+  contact: '+212 612-345678',
+};
+
+const STEPS = [
+  { key: 'item', label: 'What happened', subtitle: 'Item type & category', num: '1' },
+  { key: 'location', label: 'Where & when', subtitle: 'City, place & date', num: '2' },
+  { key: 'photo', label: 'Photo', subtitle: 'Upload & preview', num: '3' },
+  { key: 'review', label: 'Review & Publish', subtitle: 'Confirm & post', num: '4' },
+];
+
+export default function MockNewPostDialog({ isOpen = true, onClose, prefill = false }) {
+  const [activeStep, setActiveStep] = useState(0);
+  const [formData, setFormData] = useState({
+    type: prefill ? mockSampleData.type : 'LOST',
+    category: prefill ? mockSampleData.category : 'phones',
+    title: prefill ? mockSampleData.title : '',
+    country: prefill ? mockSampleData.country : 'Morocco 🇲🇦',
+    city: prefill ? mockSampleData.city : '',
+    exactLocation: prefill ? mockSampleData.exactLocation : '',
+    date: prefill ? mockSampleData.date : '2026-10-20',
+    description: prefill ? mockSampleData.description : '',
+    hasImage: prefill,
+    facePrivacy: true,
+  });
+
+  const [isPublished, setIsPublished] = useState(false);
+
+  if (!isOpen) return null;
+
+  // Final published view (Payoff scene)
+  if (isPublished) {
+    return (
+      <div style={styles.backdrop}>
+        <div style={styles.successModal}>
+          <div style={styles.successBanner}>
+            <div style={styles.checkCircle}>✓</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '17px', color: '#065F46' }}>Post Published Successfully!</h3>
+              <p style={{ margin: 0, fontSize: '13px', color: '#047857' }}>Your listing is now live on Mafqoudat</p>
+            </div>
+          </div>
+
+          <div style={styles.previewCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{
+                ...styles.badge,
+                backgroundColor: formData.type === 'LOST' ? '#FEE2E2' : '#ECFDF5',
+                color: formData.type === 'LOST' ? '#DC2626' : '#059669',
+              }}>
+                {formData.type === 'LOST' ? '● LOST ITEM' : '● FOUND ITEM'}
+              </span>
+              <span style={{ fontSize: '12px', color: '#94A3B8' }}>{formData.date}</span>
+            </div>
+
+            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '6px 0', color: '#0F172A' }}>
+              {formData.title || mockSampleData.title}
+            </h2>
+
+            <div style={{ fontSize: '13px', color: '#64748B', display: 'flex', gap: '6px', alignItems: 'center' }}>
+              📍 <strong>{formData.city || mockSampleData.city}</strong>
+              {formData.exactLocation && <span>• {formData.exactLocation}</span>}
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.5, margin: 0 }}>
+              {formData.description || mockSampleData.description}
+            </p>
+
+            <img
+              src={mockSampleData.image}
+              alt="Item preview"
+              style={{ width: '100%', height: '170px', objectFit: 'cover', borderRadius: '10px' }}
+            />
+
+            <button
+              onClick={() => { setIsPublished(false); if (onClose) onClose(); }}
+              style={styles.primaryBtn}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.backdrop}>
+      <div style={styles.wizardDialog}>
+        {/* Top Header */}
+        <div style={styles.wizardHeader}>
+          <div>
+            <h2 style={styles.wizardTitle}>Create New Listing</h2>
+            <p style={styles.wizardSubtitle}>Step {activeStep + 1} of 4: {STEPS[activeStep].label}</p>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...mockSampleData, hasImage: true })}
+              style={styles.ghostBtn}
+              title="Populate demo data for video ad"
+            >
+              ⚡ Fill Demo Data
+            </button>
+            {onClose && <button onClick={onClose} style={styles.closeBtn}>✕</button>}
+          </div>
+        </div>
+
+        {/* Wizard Body: Left Rail + Right Content */}
+        <div style={styles.wizardLayout}>
+          {/* Left Stepper Rail */}
+          <div style={styles.stepperRail}>
+            {STEPS.map((step, idx) => {
+              const isActive = activeStep === idx;
+              const isDone = activeStep > idx;
+              return (
+                <div
+                  key={step.key}
+                  onClick={() => setActiveStep(idx)}
+                  style={{
+                    ...styles.railItem,
+                    ...(isActive ? styles.railItemActive : {}),
+                  }}
+                >
+                  <div style={{
+                    ...styles.railCircle,
+                    ...(isDone ? styles.railCircleDone : isActive ? styles.railCircleActive : {})
+                  }}>
+                    {isDone ? '✓' : step.num}
+                  </div>
+                  <div>
+                    <div style={{
+                      ...styles.railLabel,
+                      fontWeight: isActive ? 700 : 500,
+                      color: isActive ? '#1A73E8' : isDone ? '#0F172A' : '#64748B'
+                    }}>
+                      {step.label}
+                    </div>
+                    <div style={styles.railSubtitle}>{step.subtitle}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Right Step Content */}
+          <div style={styles.contentPane}>
+            {/* STEP 1: What happened */}
+            {activeStep === 0 && (
+              <div style={styles.stepContainer}>
+                {/* 1. Have you lost or found something? */}
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Have you lost or found something? *</label>
+                  <div style={styles.dualToggleGrid}>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: 'LOST' })}
+                      style={{
+                        ...styles.toggleBox,
+                        ...(formData.type === 'LOST' ? styles.toggleBoxLostActive : {})
+                      }}
+                    >
+                      <span style={{ fontSize: '20px' }}>🔍</span>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>I Lost</div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>I am looking for an item</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: 'FOUND' })}
+                      style={{
+                        ...styles.toggleBox,
+                        ...(formData.type === 'FOUND' ? styles.toggleBoxFoundActive : {})
+                      }}
+                    >
+                      <span style={{ fontSize: '20px' }}>🎁</span>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>I Found</div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>I found someone's item</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Category Grid Picker */}
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Select Category *</label>
+                  <div style={styles.categoryGrid}>
+                    {CATEGORIES.map((cat) => {
+                      const isSelected = formData.category === cat.id;
+                      return (
+                        <div
+                          key={cat.id}
+                          onClick={() => setFormData({ ...formData, category: cat.id })}
+                          style={{
+                            ...styles.categoryCard,
+                            borderColor: isSelected ? '#1A73E8' : '#E2E8F0',
+                            backgroundColor: isSelected ? 'rgba(26, 115, 232, 0.06)' : '#FAFAFA',
+                          }}
+                        >
+                          <span style={{ fontSize: '22px' }}>{cat.icon}</span>
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: isSelected ? 700 : 500,
+                            color: isSelected ? '#1A73E8' : '#334155',
+                            textAlign: 'center'
+                          }}>
+                            {cat.name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Item Name */}
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Item Name / Title *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. iPhone 13 Pro Max (Navy Blue)"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Where & when */}
+            {activeStep === 1 && (
+              <div style={styles.stepContainer}>
+                <div style={styles.twoCol}>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Country *</label>
+                    <select
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      style={styles.select}
+                    >
+                      <option>Morocco 🇲🇦</option>
+                      <option>Algeria 🇩🇿</option>
+                      <option>Tunisia 🇹🇳</option>
+                      <option>France 🇫🇷</option>
+                    </select>
+                  </div>
+
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>City / District *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Casablanca (Morocco Mall)"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Date Lost / Found *</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Specific Landmark / Location details</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Food Court Starbucks, Table near entrance"
+                    value={formData.exactLocation}
+                    onChange={(e) => setFormData({ ...formData, exactLocation: e.target.value })}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Description</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Provide details about colors, scratches, distinctive stickers..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    style={styles.textarea}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Photo */}
+            {activeStep === 2 && (
+              <div style={styles.stepContainer}>
+                <label style={styles.label}>Upload Photo of the Item</label>
+                <div
+                  style={styles.uploadDropzone}
+                  onClick={() => setFormData({ ...formData, hasImage: !formData.hasImage })}
+                >
+                  {formData.hasImage ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%' }}>
+                      <img
+                        src={mockSampleData.image}
+                        alt="Item"
+                        style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover' }}
+                      />
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>iphone_13_blue.jpg</div>
+                        <div style={{ fontSize: '12px', color: '#059669', marginTop: '2px' }}>✓ Image ready (Compressed & optimized)</div>
+                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>Click to change photo</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: '32px' }}>📷</div>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: '#1E293B', marginTop: '6px' }}>
+                        Click to upload or drag & drop photo
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#64748B' }}>PNG, JPG or WebP up to 10MB</div>
+                    </>
+                  )}
+                </div>
+
+                <div style={styles.privacyBox}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '13px', color: '#0F172A' }}>🛡️ Automatic Face Privacy Redaction</div>
+                    <div style={{ fontSize: '12px', color: '#64748B' }}>Blur human faces in photos to protect community privacy</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.facePrivacy}
+                    onChange={(e) => setFormData({ ...formData, facePrivacy: e.target.checked })}
+                    style={{ width: '18px', height: '18px', accentColor: '#1A73E8', cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: Review & Submit */}
+            {activeStep === 3 && (
+              <div style={styles.stepContainer}>
+                <div style={styles.reviewSummaryBox}>
+                  <div style={styles.reviewRow}>
+                    <span style={styles.reviewLabel}>Listing Type:</span>
+                    <strong style={{ color: formData.type === 'LOST' ? '#DC2626' : '#059669' }}>
+                      {formData.type === 'LOST' ? 'I Lost an Item' : 'I Found an Item'}
+                    </strong>
+                  </div>
+                  <div style={styles.reviewRow}>
+                    <span style={styles.reviewLabel}>Item:</span>
+                    <strong>{formData.title || mockSampleData.title}</strong>
+                  </div>
+                  <div style={styles.reviewRow}>
+                    <span style={styles.reviewLabel}>Category:</span>
+                    <span>{CATEGORIES.find(c => c.id === formData.category)?.name || 'Phones & Tech'}</span>
+                  </div>
+                  <div style={styles.reviewRow}>
+                    <span style={styles.reviewLabel}>Location:</span>
+                    <span>{formData.city || mockSampleData.city}</span>
+                  </div>
+                  <div style={styles.reviewRow}>
+                    <span style={styles.reviewLabel}>Date:</span>
+                    <span>{formData.date}</span>
+                  </div>
+                  {formData.hasImage && (
+                    <div style={{ ...styles.reviewRow, alignItems: 'center' }}>
+                      <span style={styles.reviewLabel}>Attached Photo:</span>
+                      <img src={mockSampleData.image} alt="Thumb" style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748B', textAlign: 'center' }}>
+                  By publishing, your post will be visible in the city search feed and radar alerts.
+                </div>
+              </div>
+            )}
+
+            {/* Footer Navigation Buttons */}
+            <div style={styles.wizardFooter}>
+              {activeStep > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(activeStep - 1)}
+                  style={styles.backBtn}
+                >
+                  ← Back
+                </button>
+              ) : <div />}
+
+              {activeStep < 3 ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(activeStep + 1)}
+                  style={styles.nextBtn}
+                >
+                  Next Step →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsPublished(true)}
+                  style={styles.publishBtn}
+                >
+                  Publish Listing Now 🚀
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  backdrop: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '16px',
+    zIndex: 9999,
+    fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif",
+  },
+  wizardDialog: {
+    width: '100%',
+    maxWidth: '720px',
+    backgroundColor: '#FFFFFF',
+    borderRadius: '20px',
+    boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    border: '1px solid #E2E8F0',
+  },
+  wizardHeader: {
+    padding: '18px 24px',
+    borderBottom: '1px solid #F1F5F9',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  wizardTitle: {
+    fontSize: '18px',
+    fontWeight: 700,
+    color: '#0F172A',
+    margin: 0,
+  },
+  wizardSubtitle: {
+    fontSize: '12px',
+    color: '#64748B',
+    marginTop: '2px',
+    margin: 0,
+  },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    color: '#94A3B8',
+    cursor: 'pointer',
+  },
+  ghostBtn: {
+    backgroundColor: '#F1F5F9',
+    border: '1px solid #E2E8F0',
+    borderRadius: '8px',
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#1A73E8',
+    cursor: 'pointer',
+  },
+  wizardLayout: {
+    display: 'flex',
+    minHeight: '430px',
+  },
+  stepperRail: {
+    width: '210px',
+    backgroundColor: '#F8FAFC',
+    borderRight: '1px solid #F1F5F9',
+    padding: '20px 14px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  railItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 12px',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  railItemActive: {
+    backgroundColor: 'rgba(26, 115, 232, 0.08)',
+  },
+  railCircle: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: '#E2E8F0',
+    color: '#64748B',
+    fontSize: '12px',
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  railCircleActive: {
+    backgroundColor: '#1A73E8',
+    color: '#FFFFFF',
+    boxShadow: '0 0 0 3px rgba(26, 115, 232, 0.2)',
+  },
+  railCircleDone: {
+    backgroundColor: '#10B981',
+    color: '#FFFFFF',
+  },
+  railLabel: {
+    fontSize: '13px',
+    lineHeight: '1.2',
+  },
+  railSubtitle: {
+    fontSize: '11px',
+    color: '#94A3B8',
+    marginTop: '2px',
+  },
+  contentPane: {
+    flex: 1,
+    padding: '22px 26px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+  },
+  stepContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
+  },
+  fieldGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  label: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#334155',
+  },
+  dualToggleGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+  },
+  toggleBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    border: '1.5px solid #E2E8F0',
+    backgroundColor: '#FAFAFA',
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  toggleBoxLostActive: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+    color: '#DC2626',
+    boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.15)',
+  },
+  toggleBoxFoundActive: {
+    borderColor: '#10B981',
+    backgroundColor: '#ECFDF5',
+    color: '#059669',
+    boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.15)',
+  },
+  categoryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '8px',
+  },
+  categoryCard: {
+    border: '1.5px solid #E2E8F0',
+    borderRadius: '10px',
+    padding: '10px 6px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '4px',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  twoCol: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+  },
+  input: {
+    width: '100%',
+    padding: '9px 12px',
+    borderRadius: '10px',
+    border: '1.5px solid #E2E8F0',
+    fontSize: '13px',
+    color: '#0F172A',
+    boxSizing: 'border-box',
+    outline: 'none',
+  },
+  select: {
+    width: '100%',
+    padding: '9px 12px',
+    borderRadius: '10px',
+    border: '1.5px solid #E2E8F0',
+    fontSize: '13px',
+    color: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    boxSizing: 'border-box',
+    outline: 'none',
+  },
+  textarea: {
+    width: '100%',
+    padding: '9px 12px',
+    borderRadius: '10px',
+    border: '1.5px solid #E2E8F0',
+    fontSize: '13px',
+    color: '#0F172A',
+    resize: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit',
+    outline: 'none',
+  },
+  uploadDropzone: {
+    border: '2px dashed #CBD5E1',
+    borderRadius: '14px',
+    padding: '24px',
+    backgroundColor: '#F8FAFC',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
+  privacyBox: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    padding: '12px 14px',
+    borderRadius: '10px',
+    border: '1px solid #E2E8F0',
+  },
+  reviewSummaryBox: {
+    backgroundColor: '#F8FAFC',
+    border: '1px solid #E2E8F0',
+    borderRadius: '12px',
+    padding: '14px 18px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  reviewRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '13px',
+    color: '#1E293B',
+  },
+  reviewLabel: {
+    color: '#64748B',
+  },
+  wizardFooter: {
+    marginTop: '20px',
+    paddingTop: '16px',
+    borderTop: '1px solid #F1F5F9',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  backBtn: {
+    padding: '9px 16px',
+    borderRadius: '8px',
+    border: '1px solid #CBD5E1',
+    backgroundColor: '#FFFFFF',
+    color: '#475569',
+    fontWeight: 600,
+    fontSize: '13px',
+    cursor: 'pointer',
+  },
+  nextBtn: {
+    padding: '9px 22px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#1A73E8',
+    color: '#FFFFFF',
+    fontWeight: 600,
+    fontSize: '13px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 4px rgba(26, 115, 232, 0.25)',
+  },
+  publishBtn: {
+    padding: '10px 24px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#059669',
+    color: '#FFFFFF',
+    fontWeight: 700,
+    fontSize: '13px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 6px rgba(5, 150, 105, 0.3)',
+  },
+  successModal: {
+    width: '100%',
+    maxWidth: '440px',
+    backgroundColor: '#FFFFFF',
+    borderRadius: '18px',
+    padding: '20px',
+    boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.3)',
+  },
+  successBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    backgroundColor: '#ECFDF5',
+    border: '1px solid #A7F3D0',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    marginBottom: '16px',
+  },
+  checkCircle: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: '#059669',
+    color: '#FFFFFF',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 700,
+  },
+  previewCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  badge: {
+    fontSize: '11px',
+    fontWeight: 700,
+    padding: '3px 8px',
+    borderRadius: '12px',
+  },
+  primaryBtn: {
+    marginTop: '6px',
+    padding: '10px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#1A73E8',
+    color: '#FFFFFF',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+};

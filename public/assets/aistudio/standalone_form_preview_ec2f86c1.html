@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مفقودات - Mafqoudat Mobile Ad Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', 'Plus Jakarta Sans', sans-serif;
+      background: #0F172A;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* Smartphone Device Frame */
+    .phone-mockup {
+      width: 390px;
+      height: 820px;
+      background: #FFFFFF;
+      border-radius: 46px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 10px #1E293B, 0 0 0 12px #334155;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Dynamic Island / Notch */
+    .dynamic-island {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 28px;
+      background: #000000;
+      border-radius: 20px;
+      z-index: 1000;
+    }
+
+    /* Mobile Browser Address Bar */
+    .mobile-browser-bar {
+      padding: 44px 16px 10px;
+      background: #F8FAFC;
+      border-bottom: 1px solid #E2E8F0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 900;
+      direction: ltr;
+    }
+    .url-pill {
+      flex: 1;
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 20px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0F172A;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    /* Background Website Hero Screen */
+    .website-background {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, #F0F6FF 0%, #FFFFFF 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .mobile-header {
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo-text {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1A73E8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hero-content {
+      padding: 30px 20px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .hero-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0F172A;
+      line-height: 1.3;
+    }
+    .hero-subtitle {
+      font-size: 14px;
+      color: #64748B;
+      line-height: 1.5;
+    }
+
+    /* The 2 Core Action Buttons */
+    .hero-actions-container {
+      width: 100%;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: auto;
+      margin-bottom: 30px;
+    }
+    .action-card-btn {
+      width: 100%;
+      padding: 16px 20px;
+      border-radius: 18px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 8px 20px -6px rgba(0,0,0,0.1);
+      transition: transform 0.15s ease;
+    }
+    .action-card-btn:active { transform: scale(0.98); }
+    .btn-lost {
+      background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+      color: #FFFFFF;
+    }
+    .btn-found {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: #FFFFFF;
+    }
+    .action-card-title { font-size: 17px; font-weight: 700; }
+    .action-card-sub { font-size: 12px; opacity: 0.9; }
+
+    /* MOBILE FORM DIALOG OVERLAY (BOTTOM SHEET / MODAL) */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .mobile-form-sheet {
+      width: 100%;
+      max-height: 88%;
+      background: #FFFFFF;
+      border-radius: 26px 26px 0 0;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.25s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    /* Modal Grabber & Header */
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: #CBD5E1;
+      border-radius: 2px;
+      margin: 10px auto 4px;
+    }
+    .sheet-header {
+      padding: 12px 20px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    .sheet-title { font-size: 17px; font-weight: 700; color: #0F172A; }
+    .sheet-step-pill {
+      font-size: 11px;
+      font-weight: 700;
+      background: #EFF6FF;
+      color: #1A73E8;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    /* Progress Dots / Bar */
+    .mobile-stepper-dots {
+      display: flex;
+      gap: 6px;
+      padding: 10px 20px 6px;
+    }
+    .step-dot {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: #E2E8F0;
+    }
+    .step-dot.active { background: #1A73E8; }
+    .step-dot.completed { background: #10B981; }
+
+    /* Scrollable Form Body without any overflow */
+    .sheet-body {
+      padding: 14px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Dual Toggle (I Lost / I Found) */
+    .dual-toggle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .mobile-toggle-btn {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1.5px solid #E2E8F0;
+      background: #F8FAFC;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .mobile-toggle-btn.active-lost {
+      background: #FEF2F2;
+      border-color: #EF4444;
+      color: #DC2626;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+    }
+    .mobile-toggle-btn.active-found {
+      background: #ECFDF5;
+      border-color: #10B981;
+      color: #059669;
+    }
+
+    /* Category Grid 4 cols */
+    .cat-mobile-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .cat-pill {
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: #FAFAFA;
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+    }
+    .cat-pill.selected {
+      border-color: #1A73E8;
+      background: rgba(26, 115, 232, 0.08);
+      color: #1A73E8;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 5px;
+      display: block;
+    }
+    .mobile-input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1.5px solid #E2E8F0;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      background: #FFFFFF;
+    }
+    .mobile-input:focus {
+      border-color: #1A73E8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+    }
+
+    .sheet-footer {
+      padding: 12px 20px 20px;
+      border-top: 1px solid #F1F5F9;
+      display: flex;
+      gap: 10px;
+      background: #FFFFFF;
+    }
+    .btn-mobile-primary {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      background: #1A73E8;
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-demo-fill {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #E2E8F0;
+      background: #F8FAFC;
+      color: #1A73E8;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MOBILE SMARTPHONE FRAME -->
+  <div class="phone-mockup">
+    <!-- Dynamic Island -->
+    <div class="dynamic-island"></div>
+
+    <!-- Mobile Browser Address Bar -->
+    <div class="mobile-browser-bar">
+      <div class="url-pill">
+        <span>🔒</span>
+        <span>mafqoudat.com</span>
+      </div>
+    </div>
+
+    <!-- Website Background on Mobile Screen -->
+    <div class="website-background">
+      <div class="mobile-header">
+        <div class="logo-text">
+          <span>🔍</span> مفقودات
+        </div>
+        <span style="font-size:18px;">🌐 العربية</span>
+      </div>
+
+      <div class="hero-content">
+        <h1 class="hero-title">هل أضعت شيئاً في مدينتك؟</h1>
+        <p class="hero-subtitle">المنصة الأولى الموثوقة للإبلاغ عن المفقودات والموجودات بسهولة وسرعة.</p>
+      </div>
+
+      <!-- The 2 Target Buttons in the Ad -->
+      <div class="hero-actions-container">
+        <button class="action-card-btn btn-lost" id="adLostBtn" type="button">
+          <div>
+            <div class="action-card-title">هل فقدتَ شيئاً؟</div>
+            <div class="action-card-sub">انشر مواصفات غرضك الآن</div>
+          </div>
+          <span style="font-size:24px;">🔍</span>
+        </button>
+
+        <button class="action-card-btn btn-found" id="adFoundBtn" type="button">
+          <div>
+            <div class="action-card-title">هل وجدتَ شيئاً؟</div>
+            <div class="action-card-sub">ساعد صاحبه في العثور عليه</div>
+          </div>
+          <span style="font-size:24px;">🎁</span>
+        </button>
+      </div>
+
+      <!-- NEW POST FORM SHEET (MODAL POPUP INSIDE MOBILE) -->
+      <div class="modal-overlay" id="formModal">
+        <div class="mobile-form-sheet">
+          <div class="sheet-handle"></div>
+
+          <div class="sheet-header">
+            <div>
+              <div class="sheet-title">إضافة إعلان جديد</div>
+              <div style="font-size:11px; color:#64748B;">الخطوة 1 من 4: نوع الغرض</div>
+            </div>
+            <div class="sheet-step-pill">1 / 4</div>
+          </div>
+
+          <!-- Progress Indicator -->
+          <div class="mobile-stepper-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+          </div>
+
+          <!-- Form Body -->
+          <div class="sheet-body">
+            <!-- 1. Have you lost or found? -->
+            <div>
+              <label class="form-label">هل فقدتَ شيئاً أم وجدته؟ *</label>
+              <div class="dual-toggle-grid">
+                <div class="mobile-toggle-btn active-lost">
+                  <span style="font-size:18px;">🔍</span>
+                  <div>
+                    <div style="font-weight:700; font-size:13px;">فقدتُ</div>
+                    <div style="font-size:10px; color:#64748B;">أبحث عن غرض</div>
+                  </div>
+                </div>
+
+                <div class="mobile-toggle-btn">
+                  <span style="font-size:18px;">🎁</span>
+                  <div>
+                    <div style="font-weight:700; font-size:13px;">وجدتُ</div>
+                    <div style="font-size:10px; color:#64748B;">عثرت على شيء</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Category Grid -->
+            <div>
+              <label class="form-label">اختر القسم *</label>
+              <div class="cat-mobile-grid">
+                <div class="cat-pill selected">
+                  <span style="font-size:18px;">📱</span>
+                  <span>هواتف</span>
+                </div>
+                <div class="cat-pill">
+                  <span style="font-size:18px;">👛</span>
+                  <span>محافظ</span>
+                </div>
+                <div class="cat-pill">
+                  <span style="font-size:18px;">🔑</span>
+                  <span>مفاتيح</span>
+                </div>
+                <div class="cat-pill">
+                  <span style="font-size:18px;">🪪</span>
+                  <span>وثائق</span>
+                </div>
+                <div class="cat-pill">
+                  <span style="font-size:18px;">🎒</span>
+                  <span>حقائب</span>
+                </div>
+                <div class="cat-pill">
+                  <span style="font-size:18px;">🐾</span>
+                  <span>حيوانات</span>
+                </div>
+                <div class="cat-pill">
+                  <span style="font-size:18px;">⌚</span>
+                  <span>ساعات</span>
+                </div>
+                <div class="cat-pill">
+                  <span style="font-size:18px;">📦</span>
+                  <span>أخرى</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Title -->
+            <div>
+              <label class="form-label">اسم الغرض أو مواصفاته *</label>
+              <input class="mobile-input" type="text" value="آيفون 13 برو ماكس (أزرق)" placeholder="مثال: هاتف آيفون، بطاقة تعريف..." />
+            </div>
+
+            <!-- 4. Location -->
+            <div>
+              <label class="form-label">المدينة والمكان *</label>
+              <input class="mobile-input" type="text" value="الدار البيضاء (موروكو مول)" placeholder="مثال: الدار البيضاء، الرباط..." />
+            </div>
+          </div>
+
+          <!-- Bottom Action Buttons -->
+          <div class="sheet-footer">
+            <button class="btn-demo-fill" type="button">⚡ تعبئة تلقائية</button>
+            <button class="btn-mobile-primary" type="button">التالي: المكان والتاريخ ←</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

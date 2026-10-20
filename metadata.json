@@ -1,0 +1,6 @@
+{
+  "name": "Mafqoudat - Lost & Found Platform",
+  "description": "Morocco's lost and found platform. Report lost or found items with a 4-step wizard, smart city radar, and instant recovery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
