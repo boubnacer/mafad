@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Lock, 
   RotateCw, 
@@ -69,84 +69,107 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
   const [isPublished, setIsPublished] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  // Camera state: zoom scale and translation
-  const [camera, setCamera] = useState<{ scale: number; x: number; y: number; duration: number }>({
-    scale: 1,
-    x: 0,
-    y: 0,
-    duration: 0.65,
-  });
-
   // Animated Pointer Cursor (for simulated touch actions inside stage coordinates)
   const [pointer, setPointer] = useState<{ x: number; y: number; visible: boolean; pressing: boolean }>({
     x: 195,
-    y: 422,
+    y: 60,
     visible: false,
     pressing: false,
   });
 
+  // Smooth Camera State (Centered Zoom on filling field & Smooth Zoom Out)
+  const [camera, setCamera] = useState<{ x: number; y: number; zoom: number }>({
+    x: 0,
+    y: 0,
+    zoom: 1.0,
+  });
+  const prevZoomRef = useRef(1.0);
+
   // Typing effect cursor blinker
   const [typingCursorField, setTypingCursorField] = useState<string | null>(null);
 
-  // Field Y-coordinates calibrated for vertical centering at 422px in motion graphic mode
-  const fieldCoordinates: Record<string, { x: number; y: number; zoom: number }> = {
-    'field-browser-url': { x: 195, y: 72, zoom: 1.15 },
-    'field-hero-buttons': { x: 195, y: 670, zoom: 1.15 },
-    'field-lost-button': { x: 195, y: 645, zoom: 1.15 },
-    'field-cat-jewelry': { x: 195, y: 395, zoom: 1.16 },
-    'field-title-input': { x: 195, y: 520, zoom: 1.16 },
-    'field-city-input': { x: 195, y: 355, zoom: 1.16 },
-    'field-exact-location': { x: 195, y: 445, zoom: 1.16 },
-    'field-date-input': { x: 195, y: 525, zoom: 1.16 },
-    'field-desc-input': { x: 195, y: 615, zoom: 1.15 },
-    'field-photo-upload': { x: 195, y: 425, zoom: 1.15 },
-    'field-publish-btn': { x: 195, y: 775, zoom: 1.16 },
-    'field-next-btn': { x: 195, y: 775, zoom: 1.0 },
+  // Container ref and dynamic scale to fit available viewport height without clipping
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [phoneScale, setPhoneScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (!containerRef.current) return;
+      const parent = containerRef.current.parentElement;
+      if (!parent) return;
+      // Dimensions of the phone chassis: ~416px width x 870px height
+      const availH = parent.clientHeight - 24;
+      const availW = parent.clientWidth - 24;
+      if (availH > 0 && availW > 0) {
+        const scaleH = availH / 870;
+        const scaleW = availW / 416;
+        const fit = Math.min(1, Math.min(scaleH, scaleW));
+        setPhoneScale(Math.max(0.4, fit));
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
+  // Calibrated field coordinates inside 390x844 stage space
+  const fieldCoordinates: Record<string, { x: number; y: number }> = {
+    'field-browser-url': { x: 195, y: 60 },
+    'field-hero-buttons': { x: 195, y: 535 },
+    'field-lost-button': { x: 195, y: 535 },
+    'field-cat-jewelry': { x: 235, y: 350 },
+    'field-title-input': { x: 300, y: 460 },
+    'field-city-input': { x: 300, y: 280 },
+    'field-exact-location': { x: 300, y: 380 },
+    'field-date-input': { x: 195, y: 460 },
+    'field-desc-input': { x: 300, y: 550 },
+    'field-photo-upload': { x: 195, y: 320 },
+    'field-publish-btn': { x: 195, y: 785 },
+    'field-next-btn': { x: 195, y: 785 },
   };
 
-  // Center target field in the phone viewport:
-  // Phone center = (195, 422)
-  // When scale = S: screenPos = S * target + translation => translation = 195 - S * targetX, 422 - S * targetY
-  const centerOnPoint = (targetX: number, targetY: number, targetZoom: number, duration = 0.65) => {
-    if (targetZoom <= 1.03) {
-      setCamera({
-        scale: 1,
-        x: 0,
-        y: 0,
-        duration,
-      });
-      return;
+  // Helper to dynamically measure exact untransformed position of target field relative to stage
+  const getFieldCoordinates = useCallback((targetId?: string): { x: number; y: number } | null => {
+    if (!targetId || !stageRef.current) return null;
+    const stage = stageRef.current;
+    const container = stage.querySelector(`#${targetId}`) as HTMLElement | null;
+    if (!container) return null;
+
+    // Prefer interactive inputs, textareas, or buttons within the container
+    const activeEl = (container.querySelector('input:not([type="hidden"]), textarea, button') as HTMLElement | null) || container;
+
+    let top = 0;
+    let left = 0;
+    let curr: HTMLElement | null = activeEl;
+    while (curr && curr !== stage) {
+      top += curr.offsetTop;
+      left += curr.offsetLeft;
+      if (curr.parentElement && curr.parentElement !== stage) {
+        top -= curr.parentElement.scrollTop;
+        left -= curr.parentElement.scrollLeft;
+      }
+      curr = curr.offsetParent as HTMLElement | null;
     }
 
-    const tx = 195 - targetZoom * targetX;
-    const ty = 422 - targetZoom * targetY;
+    const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA';
+    const isLtr = activeEl.closest('.direction-ltr') !== null || targetId === 'field-browser-url';
 
-    setCamera({
-      scale: targetZoom,
-      x: tx,
-      y: ty,
-      duration,
-    });
-  };
+    let x = left + activeEl.offsetWidth / 2;
+    if (isInput) {
+      // In RTL Arabic text input, position cursor near the right edge to simulate clicking the text entry area
+      x = isLtr ? left + 45 : left + activeEl.offsetWidth - 35;
+    }
+
+    const y = top + activeEl.offsetHeight / 2;
+    return { x, y };
+  }, []);
 
   // React to current storyboard scene updates
   useEffect(() => {
     if (interactiveMode) return; // Allow manual exploration if in interactive mode
 
     const scene = currentScene;
-    const targetZoom = scene.zoom;
-    const targetField = scene.targetFieldId ? fieldCoordinates[scene.targetFieldId] : null;
-
-    const targetX = targetField ? targetField.x : scene.targetFallback.x;
-    const targetY = targetField ? targetField.y : scene.targetFallback.y;
-
-    // Camera movement sound
-    if (targetZoom > 1.05) {
-      soundEffects.playZoom();
-    }
-
-    // Move camera to center the field
-    centerOnPoint(targetX, targetY, targetZoom, 0.65);
 
     // Apply any form state patches specified by scene
     if (scene.formStatePatch) {
@@ -164,23 +187,60 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
       if (scene.formStatePatch.isPublished !== undefined) setIsPublished(scene.formStatePatch.isPublished as boolean);
     }
 
-    // Pointer positioning & action animation (inside stage coordinate space)
-    if (scene.pointerPos) {
-      setPointer({
-        x: scene.pointerPos.x,
-        y: scene.pointerPos.y,
-        visible: true,
-        pressing: !!scene.pointerPos.pressing,
-      });
-
-      if (scene.pointerPos.pressing) {
-        soundEffects.playTap();
-      }
-    } else {
-      setPointer((prev) => ({ ...prev, visible: false, pressing: false }));
+    // Camera zoom sound effect
+    const nextZoom = scene.zoom || 1.0;
+    if (Math.abs(nextZoom - prevZoomRef.current) > 0.03) {
+      soundEffects.playZoom();
+      prevZoomRef.current = nextZoom;
     }
 
+    // Apply cursor & camera positioning
+    const updatePositionAndCamera = () => {
+      const resolved = scene.targetFieldId ? getFieldCoordinates(scene.targetFieldId) : null;
+      const fallback = scene.targetFieldId ? fieldCoordinates[scene.targetFieldId] : null;
+      const targetX = resolved ? resolved.x : (scene.pointerPos?.x ?? fallback?.x ?? scene.targetFallback?.x ?? 195);
+      const targetY = resolved ? resolved.y : (scene.pointerPos?.y ?? fallback?.y ?? scene.targetFallback?.y ?? 422);
+
+      // Camera Framing: Smooth zoom centering on the field being filled
+      if (nextZoom <= 1.01) {
+        setCamera({ x: 0, y: 0, zoom: 1.0 });
+      } else {
+        const viewX = 195;
+        // Keep vertical focal point comfortably in the upper-middle frame
+        const viewY = Math.min(460, Math.max(340, targetY));
+        const rawTx = viewX - targetX * nextZoom;
+        const rawTy = viewY - targetY * nextZoom;
+        // Clamp bounds so stage content never detaches from phone edges
+        const minTx = 390 * (1 - nextZoom);
+        const minTy = 844 * (1 - nextZoom);
+        const tx = Math.min(0, Math.max(minTx, rawTx));
+        const ty = Math.min(0, Math.max(minTy, rawTy));
+        setCamera({ x: tx, y: ty, zoom: nextZoom });
+      }
+
+      // Pointer positioning & action animation
+      if (scene.pointerPos) {
+        setPointer({
+          x: targetX,
+          y: targetY,
+          visible: true,
+          pressing: !!scene.pointerPos.pressing,
+        });
+
+        if (scene.pointerPos.pressing) {
+          soundEffects.playTap();
+        }
+      } else {
+        setPointer((prev) => ({ ...prev, visible: false, pressing: false }));
+      }
+    };
+
+    updatePositionAndCamera();
+    // Re-verify after paint in case newly mounted step changed DOM positions
+    const rafId = requestAnimationFrame(updatePositionAndCamera);
+
     // Specific Action triggers (typing simulation, sound effects, celebration)
+    let photoTimer: NodeJS.Timeout | null = null;
     if (scene.actionType === 'type_domain') {
       setTypingCursorField('domain');
       simulateTyping('mafqoudat.ma', (val) => setDomainText(val), () => {
@@ -207,13 +267,21 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
       setCategory('jewelry');
     } else if (scene.actionType === 'upload_photo') {
       soundEffects.playTap();
-      setHasImage(true);
+      setHasImage(false);
+      photoTimer = setTimeout(() => {
+        setHasImage(true);
+        soundEffects.playKeyClick();
+      }, 350);
     } else if (scene.actionType === 'click_publish' || scene.actionType === 'success_celebration') {
       soundEffects.playSuccess();
       setIsPublished(true);
     }
 
-  }, [currentScene, interactiveMode]);
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (photoTimer) clearTimeout(photoTimer);
+    };
+  }, [currentScene, interactiveMode, getFieldCoordinates]);
 
   // Helper to type text character-by-character with realistic cadence and audio
   const simulateTyping = (targetText: string, onUpdate: (text: string) => void, onComplete?: () => void) => {
@@ -270,7 +338,14 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
   ];
 
   return (
-    <div className="relative flex items-center justify-center p-2 sm:p-4 select-none">
+    <div 
+      ref={containerRef}
+      className="relative flex items-center justify-center p-1 sm:p-2 select-none"
+      style={{
+        transform: `scale(${phoneScale})`,
+        transformOrigin: 'center center',
+      }}
+    >
       {/* Ambient Radial Spotlight Glow behind Smartphone */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
         <div className="w-[500px] h-[750px] bg-blue-600/15 rounded-full blur-[130px]" />
@@ -279,7 +354,7 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
 
       {/* HARDWARE PHONE CHASSIS (Apple iPhone 16 Pro Dimensions: 390px x 844px) */}
       <div 
-        className={`relative transition-all duration-300 ${
+        className={`relative transition-all duration-300 shrink-0 ${
           showPhoneFrame 
             ? 'p-3 bg-[#1e2330] rounded-[56px] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.1),0_0_0_3px_#334155,0_0_0_5px_#0f172a]'
             : 'rounded-[46px] shadow-2xl'
@@ -298,7 +373,7 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
         {/* SCREEN VIEWPORT CONTAINER: Exact 390 x 844 viewport bounding box */}
         <div
           ref={phoneViewportRef}
-          className="w-[390px] h-[844px] max-w-[calc(100vw-32px)] max-h-[88vh] bg-white rounded-[44px] relative overflow-hidden flex flex-col text-slate-900 border border-slate-300/60 shadow-inner"
+          className="w-[390px] h-[844px] shrink-0 bg-white rounded-[44px] relative overflow-hidden flex flex-col text-slate-900 border border-slate-300/60 shadow-inner"
           dir="rtl"
           style={{ fontFamily: "'Cairo', 'Plus Jakarta Sans', system-ui, sans-serif" }}
         >
@@ -331,17 +406,15 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
           </div>
 
           {/* =========================================================================
-              CAMERA STAGE: Transform container that shifts and zooms content gently (1.14x - 1.16x)
-              so target fields are placed directly in the center of the phone screen (195, 422)
-              while remaining 100% visible with full borders, labels, and typed text.
+              PHONE SCREEN STAGE: 390px x 844px display container holding all UI layers
              ========================================================================= */}
           <div
             ref={stageRef}
-            className="w-[390px] h-[844px] absolute top-0 left-0 origin-top-left flex flex-col camera-stage"
+            className="w-[390px] h-[844px] absolute top-0 left-0 flex flex-col camera-stage"
             style={{
-              transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
-              transition: `transform ${camera.duration}s cubic-bezier(0.16, 1, 0.3, 1)`,
-              willChange: 'transform',
+              transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
+              transformOrigin: '0 0',
+              transition: 'transform 0.65s cubic-bezier(0.22, 1, 0.36, 1)',
             }}
           >
             {/* VIRTUAL POINTER CURSOR (Rendered inside stage so it moves smoothly with elements) */}
@@ -588,7 +661,7 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
                   }}
                 >
                   <div
-                    className="w-full max-h-[92%] bg-white rounded-t-[28px] shadow-2xl flex flex-col overflow-hidden border-t border-slate-200 animate-in slide-in-from-bottom-8 duration-300"
+                    className="w-full h-[680px] bg-white rounded-t-[28px] shadow-2xl flex flex-col overflow-hidden border-t border-slate-200 animate-in slide-in-from-bottom-8 duration-300"
                   >
                     {/* Sheet Handle */}
                     <div className="w-10 h-1 bg-slate-300 rounded-full mx-auto my-2 shrink-0" />
@@ -829,7 +902,7 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
                                     Padded so all 8 categories and the Jewelry button fit inside the phone with margins.
                                 */}
                                 <div 
-                                  id="field-cat-jewelry" 
+                                  id="section-cat-grid" 
                                   className={`space-y-1.5 transition-all duration-500 p-2 rounded-2xl ${
                                     currentScene.id.includes('JEWELRY')
                                       ? 'bg-amber-50/70 ring-2 ring-amber-400/80 shadow-lg shadow-amber-500/15'
@@ -852,6 +925,7 @@ export const PhoneSimulation: React.FC<PhoneSimulationProps> = ({
                                         <button
                                           type="button"
                                           key={cat.id}
+                                          id={cat.id === 'jewelry' ? 'field-cat-jewelry' : `field-cat-${cat.id}`}
                                           onClick={() => {
                                             setCategory(cat.id);
                                             soundEffects.playTap();

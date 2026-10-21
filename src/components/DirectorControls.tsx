@@ -33,6 +33,8 @@ interface DirectorControlsProps {
   onToggleInteractive: () => void;
   onTogglePhoneFrame: () => void;
   onSelectSceneStep: (stepNumber: number) => void;
+  className?: string;
+  variant?: 'default' | 'sidebar';
 }
 
 export const DirectorControls: React.FC<DirectorControlsProps> = ({
@@ -53,6 +55,8 @@ export const DirectorControls: React.FC<DirectorControlsProps> = ({
   onToggleInteractive,
   onTogglePhoneFrame,
   onSelectSceneStep,
+  className,
+  variant = 'default',
 }) => {
   const speeds = [0.75, 1, 1.5, 2];
 
@@ -73,8 +77,204 @@ export const DirectorControls: React.FC<DirectorControlsProps> = ({
 
   const progressPercent = ((currentIndex + 1) / totalScenes) * 100;
 
+  if (variant === 'sidebar') {
+    return (
+      <div className={`w-full h-full flex flex-col justify-between gap-3 p-4 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl overflow-y-auto select-none ${className || ''}`}>
+        {/* Top: Current Scene Header & Progress */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
+              <span className="font-extrabold text-sm text-white">لوحة تحكم المخرج</span>
+              <span className="text-[10px] font-mono text-slate-400">({currentIndex + 1}/{totalScenes})</span>
+            </div>
+            {currentScene.zoom > 1 ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                <Sparkles className="w-3 h-3" />
+                <span>تقريب {currentScene.zoom}x</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-md">
+                <Maximize2 className="w-3 h-3 text-slate-400" />
+                <span>شاشة كاملة</span>
+              </span>
+            )}
+          </div>
+
+          {/* Scrubber */}
+          <div className="relative w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-blue-500 via-emerald-400 to-amber-400 transition-all duration-300 rounded-full"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* Narration Card */}
+          <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 space-y-1.5 text-right">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-blue-400">المشهد {currentScene.stepNumber} من 11</span>
+              <span className="text-[10px] text-slate-400 font-mono">Step #{currentScene.stepNumber}</span>
+            </div>
+            <h3 className="text-sm font-extrabold text-white">
+              {currentScene.titleAr}
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {currentScene.descAr}
+            </p>
+            <p className="text-[11px] text-slate-400 italic border-t border-slate-900 pt-1">
+              {currentScene.descEn}
+            </p>
+          </div>
+
+          {/* 11 Steps Grid */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-right">
+              خطوات الإعلان المصور:
+            </span>
+            <div className="grid grid-cols-2 gap-1.5">
+              {steps.map((st) => {
+                const isCurrent = currentScene.stepNumber === st.num;
+                const isPassed = currentScene.stepNumber > st.num;
+                return (
+                  <button
+                    key={st.num}
+                    type="button"
+                    onClick={() => onSelectSceneStep(st.num)}
+                    className={`flex items-center gap-1.5 text-[11px] font-bold p-2 rounded-xl transition-all text-right cursor-pointer ${
+                      isCurrent
+                        ? 'bg-blue-600 text-white ring-2 ring-blue-400 shadow-md shadow-blue-500/30'
+                        : isPassed
+                        ? 'bg-slate-800/80 text-emerald-400 hover:bg-slate-700/80 border border-slate-700/50'
+                        : 'bg-slate-900/60 text-slate-400 hover:bg-slate-800/60 border border-slate-800'
+                    }`}
+                  >
+                    <span>{st.icon}</span>
+                    <span className="truncate flex-1">{st.labelAr}</span>
+                    <span className="text-[9px] opacity-60 font-mono">#{st.num}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom: Transport Bar */}
+        <div className="space-y-2.5 pt-2 border-t border-slate-800">
+          {/* Main Play / Next / Prev */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRestart}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              title="إعادة بدء العرض (Restart)"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onPrevScene}
+              disabled={currentIndex === 0}
+              className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-40 rounded-xl transition-colors cursor-pointer"
+              title="المشهد السابق"
+            >
+              <SkipBack className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onTogglePlay}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-xs shadow-lg transition-all cursor-pointer ${
+                isPlaying
+                  ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/20'
+                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/25 ring-2 ring-blue-400/40'
+              }`}
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="w-4 h-4 fill-current" />
+                  <span>إيقاف مؤقت</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>تشغيل العرض</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onNextScene}
+              disabled={currentIndex === totalScenes - 1}
+              className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-40 rounded-xl transition-colors cursor-pointer"
+              title="المشهد التالي"
+            >
+              <SkipForward className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Speed & Toggles */}
+          <div className="flex items-center justify-between gap-1 text-[11px]">
+            <div className="flex items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800">
+              {speeds.map((spd) => (
+                <button
+                  key={spd}
+                  type="button"
+                  onClick={() => onSetSpeed(spd)}
+                  className={`font-bold px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                    playbackSpeed === spd
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {spd}x
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={onToggleMute}
+                className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                  isMuted
+                    ? 'bg-slate-800/50 text-slate-500 border-slate-700'
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                }`}
+                title="كتم / تشغيل الصوت"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={onTogglePhoneFrame}
+                className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                  showPhoneFrame
+                    ? 'bg-blue-600/20 text-blue-400 border-blue-500/30'
+                    : 'bg-slate-800/50 text-slate-400 border-slate-700'
+                }`}
+                title="إطار الهاتف"
+              >
+                <Smartphone className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={onToggleInteractive}
+                className={`px-2.5 py-1.5 rounded-xl text-[10px] font-bold border transition-colors cursor-pointer ${
+                  interactiveMode
+                    ? 'bg-emerald-600 text-white border-emerald-400'
+                    : 'bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+              >
+                {interactiveMode ? 'تفاعل حر ✍️' : 'تلقائي 🎬'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-3 z-30 select-none">
+    <div className={`w-full max-w-4xl mx-auto space-y-2.5 z-30 select-none ${className || ''}`}>
       {/* Top Narration & Camera Subtitles Display */}
       <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 shadow-2xl transition-all duration-300">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
